@@ -6,17 +6,52 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.css">
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+
     <style>
         h1{
-            margin: 50,0;
+            margin: 50px 0;
         }
 
         .profile-picture {
             width: 100%;
         }
-        
+        .category-table-card table{
+            margin-bottom: 0;
+        }
+        .category-table-card table th,
+        .category-table-card table td
+        {
+            padding-left: 17px;
+            padding-right: 17px;
+        }
+        .category-table-card{
+            margin-top: 30px;
+            border-bottom: 0;
+            width: 100%;
+        }
+        .category-table-card .card-header{
+            cursor: pointer;
+        }
+        .fa-arrow-circle-down{
+            margin-right: 10px;
+        }
+        .cv-entry-code-warning {
+            margin-bottom: 50px;
+            text-align: center;
+        }
+        .entry-code-form {
+            width: 300px;
+            margin: auto;
+            text-align: center;
+        }
+        .entry-code-form button {
+            margin-top: 10px;
+        }
     </style>
 
     <title>Portfolio</title>
@@ -26,79 +61,77 @@
         <div class="container">
             <h1>Nick Peeters</h1>
 
-            <div class="row">
-                <div class="col-md-3">
-                    <img src="https://images.unsplash.com/photo-1453728013993-6d66e9c9123a?ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&ixlib=rb-1.2.1&auto=format&fit=crop&w=2670&q=80" alt="profile_picture" class="profile-picture"/>
-                </div>
-                <div class="col-md-9">
-                    <table class="table">
-                        <tbody>
-                          <tr v-for="row in profile">
-                            <th scope="row">{{row.key}}</th>
-                            <td>{{ row.value}}</td>
-                          </tr>
-                        </tbody>
-                      </table>
+            <div class="row" v-if="!resume">
+                <div class="col-md cv-entry-code-warning">
+                    Welcome to my CV page. This page is password protected due to privacy issues. To view my CV you have to enter the password I have provided you. 
                 </div>
             </div>
 
-            <div class="row" v-for="category in categories">
+            <div class="row"  v-if="!resume">
                 <div class="col-md">
-                    <div class="card" style="width: 100%;">
-                        <div class="card-header">
-                          {{categories.title}}
-                        </div>
-                        <tbody>
-                            <tr v-for="row in category.items">
-                              <th scope="row">{{row.key}}</th>
-                              <td>{{ row.value }}</td>
-                            </tr>
-                          </tbody>
-                        </table>
-                      </div>
-
+                    <div class="entry-code-form">
+                        <input class="form-control" type="text" name="entry_code" v-model="entryCode" />
+                        <button class="btn btn-primary" @click="decryptResume()" >View CV</button>
+                    </div>
                 </div>
             </div>
-        <div>
+            <div v-if="resume">
+                <div class="row" >
+                    <div class="col-md-3">
+                        <img src="https://images.unsplash.com/photo-1453728013993-6d66e9c9123a?ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&ixlib=rb-1.2.1&auto=format&fit=crop&w=2670&q=80" alt="profile_picture" class="profile-picture"/>
+                    </div>
+                    <div class="col-md-9">
+                        <table class="table">
+                            <tbody>
+                            <tr v-for="row in resume.profile">
+                                <th scope="row">{{row.key}}</th>
+                                <td>{{ row.value}}</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="row" v-for="category in resume.categories">
+                    <div class="col-md">
+                        <div class="card category-table-card">
+                            <div class="card-header" @click="toggleVisibility(category)">
+                            <span class="fa fa-arrow-circle-down"></span>{{category.title}}
+                            </div>
+                            <table class="table" v-if="category.visable">
+                                <tbody>
+                                    <tr v-for="row in category.items">
+                                        <th scope="row" v-if="row.key">{{row.key}}</th>
+                                        <td v-html="row.value"></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 <script type="text/javascript">
 
+
+    
+    const encryptedData="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";
+    
+
     new Vue({
-        el: '#portfolio',
+        el: "#portfolio",
         data: {
-            profile:[
-            {
-                'key': 'Age',
-                'value':'35'
+            "entryCode": "",
+            "resume":  null
+        },
+        methods: {
+            toggleVisibility: function(category){
+                category.visable = !category.visable
             },
-            {
-                'key': 'Adress',
-                'value':'Antwerp'
-            },
-            {
-                'key': 'Gender',
-                'value':'Male'
-            },
-            {
-                'key': 'Cival status',
-                'value':'Married'
-            },
-            ],
-            categories: [
-                {
-                    'title': 'Education',
-                    'items':[
-                    {
-                        'key': 'Lower education',
-                        'value': 'Don Bosco TI'
-                    },
-                    {
-                        'key': 'Higher education',
-                        'value': 'AP hogeschool'
-                    }
-                    ]
-                }
-            ]                
+            decryptResume: function(){
+                this.resume = JSON.parse(CryptoJS.AES.decrypt(encryptedData, this.entryCode).toString(CryptoJS.enc.Utf8))
+            }
         }
         
     });
